@@ -38,7 +38,7 @@ class FileService:
 
         try:
             Image.open(BytesIO(content)).verify()
-        except (UnidentifiedImageError, OSError) as exc:
+        except (UnidentifiedImageError, OSError, SyntaxError) as exc:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid image payload") from exc
 
         original_name = Path(upload.filename or "upload").name

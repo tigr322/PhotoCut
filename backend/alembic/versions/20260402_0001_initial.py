@@ -19,8 +19,16 @@ depends_on: Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    job_status = sa.Enum("pending", "queued", "processing", "completed", "failed", name="job_status")
-    job_status.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'job_status') THEN
+                CREATE TYPE job_status AS ENUM ('pending', 'queued', 'processing', 'completed', 'failed');
+            END IF;
+        END$$;
+        """
+    )
 
     op.create_table(
         "users",
@@ -68,7 +76,19 @@ def upgrade() -> None:
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("api_key_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("type", sa.String(length=50), nullable=False),
-        sa.Column("status", job_status, nullable=False),
+        sa.Column(
+            "status",
+            postgresql.ENUM(
+                "pending",
+                "queued",
+                "processing",
+                "completed",
+                "failed",
+                name="job_status",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
         sa.Column("input_file_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("result_file_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("options_json", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
@@ -108,5 +128,4 @@ def downgrade() -> None:
     op.drop_index("ix_users_email", table_name="users")
     op.drop_table("users")
 
-    job_status = sa.Enum("pending", "queued", "processing", "completed", "failed", name="job_status")
-    job_status.drop(op.get_bind(), checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS job_status")

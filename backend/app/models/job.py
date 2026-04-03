@@ -17,6 +17,13 @@ class JobStatus(str, enum.Enum):
     FAILED = "failed"
 
 
+job_status_enum = Enum(
+    JobStatus,
+    name="job_status",
+    values_callable=lambda enum_cls: [status.value for status in enum_cls],
+)
+
+
 class Job(Base):
     __tablename__ = "jobs"
 
@@ -26,7 +33,7 @@ class Job(Base):
         UUID(as_uuid=True), ForeignKey("api_keys.id", ondelete="SET NULL"), nullable=True, index=True
     )
     type: Mapped[str] = mapped_column(String(50), nullable=False, default="remove_background")
-    status: Mapped[JobStatus] = mapped_column(Enum(JobStatus, name="job_status"), nullable=False, default=JobStatus.PENDING)
+    status: Mapped[JobStatus] = mapped_column(job_status_enum, nullable=False, default=JobStatus.PENDING)
     input_file_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("files.id", ondelete="RESTRICT"), nullable=False, index=True
     )

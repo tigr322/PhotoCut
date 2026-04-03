@@ -4,12 +4,13 @@ import type { Job } from '~/types'
 definePageMeta({ middleware: 'auth' })
 
 const { push } = useToast()
-const config = useRuntimeConfig()
+const { downloadResultFile } = useFileDownload()
 
 const jobs = ref<Job[]>([])
 const loadingJobs = ref(false)
 const uploadLoading = ref(false)
 const selectedFile = ref<File | null>(null)
+const downloadingJobId = ref<string | null>(null)
 
 const options = reactive({
   output_format: 'png',
@@ -70,6 +71,17 @@ const submit = async () => {
     push(e instanceof Error ? e.message : 'Upload failed', 'error')
   } finally {
     uploadLoading.value = false
+  }
+}
+
+const downloadResult = async (job: Job) => {
+  downloadingJobId.value = job.id
+  try {
+    await downloadResultFile(job)
+  } catch (e) {
+    push(e instanceof Error ? e.message : 'Download failed', 'error')
+  } finally {
+    downloadingJobId.value = null
   }
 }
 
@@ -165,14 +177,13 @@ onBeforeUnmount(() => {
           </div>
 
           <div v-if="job.result_url" class="mt-3">
-            <a
+            <button
               class="btn-secondary inline-flex"
-              :href="`${config.public.apiBase}${job.result_url}`"
-              target="_blank"
-              rel="noopener"
+              :disabled="downloadingJobId === job.id"
+              @click="downloadResult(job)"
             >
-              Download result
-            </a>
+              {{ downloadingJobId === job.id ? 'Downloading...' : 'Download result' }}
+            </button>
           </div>
 
           <p v-if="job.error_message" class="mt-2 text-xs font-medium text-rose-600">{{ job.error_message }}</p>

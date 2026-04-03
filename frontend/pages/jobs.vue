@@ -4,10 +4,11 @@ import type { Job } from '~/types'
 definePageMeta({ middleware: 'auth' })
 
 const { push } = useToast()
-const config = useRuntimeConfig()
+const { downloadResultFile } = useFileDownload()
 
 const jobs = ref<Job[]>([])
 const loading = ref(false)
+const downloadingJobId = ref<string | null>(null)
 
 const load = async () => {
   loading.value = true
@@ -17,6 +18,17 @@ const load = async () => {
     push(e instanceof Error ? e.message : 'Failed to load jobs', 'error')
   } finally {
     loading.value = false
+  }
+}
+
+const downloadResult = async (job: Job) => {
+  downloadingJobId.value = job.id
+  try {
+    await downloadResultFile(job)
+  } catch (e) {
+    push(e instanceof Error ? e.message : 'Failed to download file', 'error')
+  } finally {
+    downloadingJobId.value = null
   }
 }
 
@@ -58,15 +70,14 @@ onBeforeUnmount(() => {
             <td class="py-3 pr-4"><JobStatusBadge :status="job.status" /></td>
             <td class="py-3 pr-4 text-slate-500">{{ new Date(job.created_at).toLocaleString() }}</td>
             <td class="py-3 pr-4">
-              <a
+              <button
                 v-if="job.result_url"
-                :href="`${config.public.apiBase}${job.result_url}`"
-                target="_blank"
-                rel="noopener"
-                class="text-brand-700 hover:underline"
+                :disabled="downloadingJobId === job.id"
+                class="text-brand-700 hover:underline disabled:cursor-not-allowed disabled:text-slate-400"
+                @click="downloadResult(job)"
               >
-                Download
-              </a>
+                {{ downloadingJobId === job.id ? 'Downloading...' : 'Download' }}
+              </button>
               <span v-else class="text-slate-400">-</span>
             </td>
           </tr>

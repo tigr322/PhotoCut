@@ -172,6 +172,15 @@ cp .env.example .env
 docker compose up --build
 ```
 
+If Docker Hub has timeouts, set mirror images in `.env`:
+
+```env
+PYTHON_BASE_IMAGE=mirror.gcr.io/library/python:3.12-slim
+NODE_BASE_IMAGE=mirror.gcr.io/library/node:20-alpine
+POSTGRES_IMAGE=public.ecr.aws/docker/library/postgres:16-alpine
+REDIS_IMAGE=public.ecr.aws/docker/library/redis:7-alpine
+```
+
 3. Open:
 - Frontend: [http://localhost:3000](http://localhost:3000)
 - Backend docs: [http://localhost:8000/docs](http://localhost:8000/docs)
